@@ -10,6 +10,8 @@ SYMBOLS = "'+*.:'"
 
 async def blink(canvas, coord, symbol='*'):
     row, column = coord
+    for _ in range(0, random.randint(1, 20)):
+        await asyncio.sleep(0)
     while True:
         for _ in range(0, 20):
             canvas.addstr(row, column, symbol, curses.A_DIM)
