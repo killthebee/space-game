@@ -85,16 +85,16 @@ def read_controls(canvas):
             break
 
         if pressed_key_code == UP_KEY_CODE:
-            rows_direction = -13
+            rows_direction = -3
 
         if pressed_key_code == DOWN_KEY_CODE:
-            rows_direction = 13
+            rows_direction = 3
 
         if pressed_key_code == RIGHT_KEY_CODE:
-            columns_direction = 15
+            columns_direction = 3
 
         if pressed_key_code == LEFT_KEY_CODE:
-            columns_direction = -15
+            columns_direction = -3
 
     return rows_direction, columns_direction
 
