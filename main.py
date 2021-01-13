@@ -77,31 +77,25 @@ def read_controls(canvas):
     """Read keys pressed and returns tuple witl controls state."""
 
     rows_direction = columns_direction = 0
-    space_pressed = False
 
     while True:
         pressed_key_code = canvas.getch()
 
         if pressed_key_code == -1:
-            # https://docs.python.org/3/library/curses.html#curses.window.getch
             break
 
         if pressed_key_code == UP_KEY_CODE:
-            rows_direction = -3
+            rows_direction = -13
 
         if pressed_key_code == DOWN_KEY_CODE:
-            rows_direction = 3
+            rows_direction = 13
 
         if pressed_key_code == RIGHT_KEY_CODE:
-            columns_direction = 5
+            columns_direction = 15
 
         if pressed_key_code == LEFT_KEY_CODE:
-            columns_direction = -5
+            columns_direction = -15
 
-        # if pressed_key_code == SPACE_KEY_CODE:
-        #     space_pressed = True
-
-    # return rows_direction, columns_direction, space_pressed
     return rows_direction, columns_direction
 
 
@@ -127,9 +121,6 @@ def draw_frame(canvas, start_row, start_column, text, negative=False):
             if symbol == ' ':
                 continue
 
-            # Check that current position it is not in a lower right corner of the window
-            # Curses will raise exception in that case. Don`t ask why…
-            # https://docs.python.org/3/library/curses.html#curses.window.addch
             if row == rows_number - 1 and column == columns_number - 1:
                 continue
 
@@ -162,14 +153,20 @@ def gen_coords(max_coords):
         yield coord
 
 
-def validate_next_coords(current_row, current_column, delta_row, delta_column, max_coords, frame_size):
-    if current_row + delta_row < 1 or current_column + delta_column < 1:
-        return False
+def fetch_next_coords(current_row, current_column, delta_row, delta_column, max_coords, frame_size):
     frame_rows, frame_columns = frame_size
     max_row, max_column = max_coords
-    if current_row + frame_rows + delta_row >= max_row or current_column + frame_columns + delta_column >= max_column:
-        return False
-    return True
+    next_row = current_row + delta_row
+    next_column = current_column + delta_column
+    if next_row < 1:
+        next_row = 1
+    if next_row + frame_rows > max_row:
+        next_row = max_row - frame_rows - 1
+    if next_column < 1:
+        next_column = 1
+    if next_column + frame_columns > max_column:
+        next_column = max_column - frame_columns -1
+    return next_row, next_column
 
 
 
@@ -187,8 +184,7 @@ def draw(canvas):
     coord = gen_coords(window.getmaxyx())
     symbol = gen_symbol()
     current_row, current_column = 1, 1
-    coroutines = [blink(canvas, next(coord), next(symbol)) for _ in range(1, 150)]
-    # coroutines.append(fire(canvas, 13, 10))
+    coroutines = [blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)]
 
     while True:
         for i, coroutine in enumerate(coroutines):
@@ -199,16 +195,14 @@ def draw(canvas):
 
         current_frame = next(frame)
         delta_row, delta_column = read_controls(canvas)
-        if validate_next_coords(
+        current_row, current_column = fetch_next_coords(
                 current_row,
                 current_column,
                 delta_row,
                 delta_column,
                 window.getmaxyx(),
                 get_frame_size(current_frame)
-        ):
-            current_row = current_row + delta_row
-            current_column = current_column + delta_column
+        )
         draw_frame(canvas, current_row, current_column, current_frame)
 
         canvas.border()
