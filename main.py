@@ -87,16 +87,16 @@ def read_controls(canvas):
             break
 
         if pressed_key_code == UP_KEY_CODE:
-            rows_direction = -1
+            rows_direction = -3
 
         if pressed_key_code == DOWN_KEY_CODE:
-            rows_direction = 1
+            rows_direction = 3
 
         if pressed_key_code == RIGHT_KEY_CODE:
-            columns_direction = 1
+            columns_direction = 5
 
         if pressed_key_code == LEFT_KEY_CODE:
-            columns_direction = -1
+            columns_direction = -5
 
         # if pressed_key_code == SPACE_KEY_CODE:
         #     space_pressed = True
@@ -137,6 +137,15 @@ def draw_frame(canvas, start_row, start_column, text, negative=False):
             canvas.addch(row, column, symbol)
 
 
+def get_frame_size(text):
+    """Calculate size of multiline text fragment, return pair — number of rows and colums."""
+
+    lines = text.splitlines()
+    rows = len(lines)
+    columns = max([len(line) for line in lines])
+    return rows, columns
+
+
 def gen_frame(frames):
     for i in cycle([0, 0, 1, 1]):
         yield frames[i]
@@ -152,6 +161,18 @@ def gen_coords(max_coords):
     for coord in random.sample(possible_coords, len(possible_coords)):
         yield coord
 
+
+def validate_next_coords(current_row, current_column, delta_row, delta_column, max_coords, frame_size):
+    if current_row + delta_row < 1 or current_column + delta_column < 1:
+        return False
+    frame_rows, frame_columns = frame_size
+    max_row, max_column = max_coords
+    if current_row + frame_rows + delta_row >= max_row or current_column + frame_columns + delta_column >= max_column:
+        return False
+    return True
+
+
+
 def gen_symbol(symbols="'+*.:'"):
     while True:
         yield symbols[random.randint(0, len(symbols) - 1)]
@@ -165,7 +186,7 @@ def draw(canvas):
     window.nodelay(True)
     coord = gen_coords(window.getmaxyx())
     symbol = gen_symbol()
-    current_row, current_column = 5, 50
+    current_row, current_column = 1, 1
     coroutines = [blink(canvas, next(coord), next(symbol)) for _ in range(1, 150)]
     # coroutines.append(fire(canvas, 13, 10))
 
@@ -178,8 +199,16 @@ def draw(canvas):
 
         current_frame = next(frame)
         delta_row, delta_column = read_controls(canvas)
-        current_row = current_row - delta_row
-        current_column = current_column - delta_column
+        if validate_next_coords(
+                current_row,
+                current_column,
+                delta_row,
+                delta_column,
+                window.getmaxyx(),
+                get_frame_size(current_frame)
+        ):
+            current_row = current_row + delta_row
+            current_column = current_column + delta_column
         draw_frame(canvas, current_row, current_column, current_frame)
 
         canvas.border()
