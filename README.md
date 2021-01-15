@@ -1,13 +1,13 @@
 # Space game
-
+Этот срипт выводит в консоль игру, с корабликом и звездочками, как на гифке.
 <p align="center">
   <img src="https://github.com/killthebee/space-game/blob/master/gif/demo.gif"/>
 </p>
 
 ## Запуск
+Python 3 уже должен быть установлен.
 
 - Скачайте код
-- Установите зависимости командой `pip install -r requirements.txt`
 - Запустите сервер командой `python3 main.py`
 
 ## Цели проекта
