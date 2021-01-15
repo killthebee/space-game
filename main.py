@@ -146,8 +146,9 @@ def gen_coords(max_coords):
     max_row = max_coords[1]
     max_column = max_coords[0]
     possible_coords = []
-    for i in range(1, max_column - 2):
-        for j in range(1, max_row - 2):
+    offset = 2
+    for i in range(1, max_column - offset):
+        for j in range(1, max_row - offset):
             possible_coords.append((i, j))
     for coord in random.sample(possible_coords, len(possible_coords)):
         yield coord
@@ -187,11 +188,11 @@ def draw(canvas):
     coroutines = [blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)]
 
     while True:
-        for i, coroutine in enumerate(coroutines):
+        for coroutine in coroutines.copy():
             try:
                 coroutine.send(None)
             except StopIteration:
-                coroutines.pop(i)
+                coroutines.remove(coroutine)
 
         current_frame = next(frame)
         delta_row, delta_column = read_controls(canvas)
