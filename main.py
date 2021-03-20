@@ -3,6 +3,7 @@ import asyncio
 import curses
 import random
 from itertools import cycle
+from os import walk
 
 
 SPACE_KEY_CODE = 32
@@ -22,6 +23,18 @@ def fetch_spaceship_frames():
     return [frame1, frame2]
 
 
+def fetch_space_trash_frames():
+    filenames = []
+    frames = []
+    for (dirpath, dirnames, filenames) in walk('space_trash'):
+        filenames.extend(filenames)
+        break
+    for filename in filenames:
+        with open(f'space_trash/{filename}') as file:
+            frames.append(file.read())
+    return frames
+
+
 async def blink(canvas, coord, symbol='*'):
     row, column = coord
     for _ in range(0, random.randint(1, 20)):
@@ -39,6 +52,16 @@ async def blink(canvas, coord, symbol='*'):
         for _ in range(0, 3):
             canvas.addstr(row, column, symbol)
             await asyncio.sleep(0)
+
+
+async def fly_garbage(canvas, column, frame, speed=1):
+    rows_number, columns_number = canvas.getmaxyx()
+    row = 0
+    while row < rows_number:
+        draw_frame(canvas, row, column, frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, frame, negative=True)
+        row += speed
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -170,23 +193,26 @@ def fetch_next_coords(current_row, current_column, delta_row, delta_column, max_
     return next_row, next_column
 
 
-
 def gen_symbol(symbols="'+*.:'"):
     while True:
         yield symbols[random.randint(0, len(symbols) - 1)]
 
 
 def draw(canvas):
-    frames = fetch_spaceship_frames()
-    frame = gen_frame(frames)
+    spaceship_frames = fetch_spaceship_frames()
+    space_trash_frames = fetch_space_trash_frames()
+    spaceship_frame = gen_frame(spaceship_frames)
+
     curses.curs_set(False)
     window = curses.initscr()
     window.nodelay(True)
+
     coord = gen_coords(window.getmaxyx())
     symbol = gen_symbol()
     current_row, current_column = 1, 1
     coroutines = [blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)]
-
+    coroutines.append(fly_garbage(canvas, 10, space_trash_frames[2]))
+    #python main.py
     while True:
         for coroutine in coroutines.copy():
             try:
@@ -194,7 +220,7 @@ def draw(canvas):
             except StopIteration:
                 coroutines.remove(coroutine)
 
-        current_frame = next(frame)
+        current_spaceship_frame = next(spaceship_frame)
         delta_row, delta_column = read_controls(canvas)
         current_row, current_column = fetch_next_coords(
                 current_row,
@@ -202,13 +228,13 @@ def draw(canvas):
                 delta_row,
                 delta_column,
                 window.getmaxyx(),
-                get_frame_size(current_frame)
+                get_frame_size(current_spaceship_frame)
         )
-        draw_frame(canvas, current_row, current_column, current_frame)
+        draw_frame(canvas, current_row, current_column, current_spaceship_frame)
 
         canvas.border()
         canvas.refresh()
-        draw_frame(canvas, current_row, current_column, current_frame, negative=True)
+        draw_frame(canvas, current_row, current_column, current_spaceship_frame, negative=True)
         time.sleep(TIC)
 
 
