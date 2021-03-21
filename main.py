@@ -13,6 +13,7 @@ UP_KEY_CODE = 259
 DOWN_KEY_CODE = 258
 TIC = 0.1
 SYMBOLS = "'+*.:'"
+COROUTINES = []
 
 
 def fetch_spaceship_frames():
@@ -54,7 +55,7 @@ async def blink(canvas, coord, symbol='*'):
             await asyncio.sleep(0)
 
 
-async def fly_garbage(canvas, column, frame, speed=1):
+async def fly_garbage(canvas, column, frame, speed=0.5):
     rows_number, columns_number = canvas.getmaxyx()
     row = 0
     while row < rows_number:
@@ -62,6 +63,18 @@ async def fly_garbage(canvas, column, frame, speed=1):
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frame, negative=True)
         row += speed
+
+
+async def fill_orbit_with_garbage(canvas):
+    rows_number, columns_number = canvas.getmaxyx()
+    space_trash_frames = fetch_space_trash_frames()
+    offset = 5
+    while True:
+        column = random.randint(offset, columns_number - offset)
+        frame_num = random.randint(0, 5)
+        COROUTINES.append(fly_garbage(canvas, column, space_trash_frames[frame_num]))
+        for _ in range(0, 30):
+            await asyncio.sleep(0)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -200,7 +213,6 @@ def gen_symbol(symbols="'+*.:'"):
 
 def draw(canvas):
     spaceship_frames = fetch_spaceship_frames()
-    space_trash_frames = fetch_space_trash_frames()
     spaceship_frame = gen_frame(spaceship_frames)
 
     curses.curs_set(False)
@@ -210,15 +222,15 @@ def draw(canvas):
     coord = gen_coords(window.getmaxyx())
     symbol = gen_symbol()
     current_row, current_column = 1, 1
-    coroutines = [blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)]
-    coroutines.append(fly_garbage(canvas, 10, space_trash_frames[2]))
+    COROUTINES.extend([blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)])
     #python main.py
+    COROUTINES.append(fill_orbit_with_garbage(canvas))
     while True:
-        for coroutine in coroutines.copy():
+        for coroutine in COROUTINES.copy():
             try:
                 coroutine.send(None)
             except StopIteration:
-                coroutines.remove(coroutine)
+                COROUTINES.remove(coroutine)
 
         current_spaceship_frame = next(spaceship_frame)
         delta_row, delta_column = read_controls(canvas)
