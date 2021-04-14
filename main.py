@@ -114,6 +114,7 @@ def read_controls(canvas):
     """Read keys pressed and returns tuple witl controls state."""
 
     rows_direction = columns_direction = 0
+    shoot = False
 
     while True:
         pressed_key_code = canvas.getch()
@@ -133,7 +134,10 @@ def read_controls(canvas):
         if pressed_key_code == LEFT_KEY_CODE:
             columns_direction = -3
 
-    return rows_direction, columns_direction
+        if pressed_key_code == SPACE_KEY_CODE:
+            shoot = True
+
+    return rows_direction, columns_direction, shoot
 
 
 def draw_frame(canvas, start_row, start_column, text, negative=False):
@@ -191,8 +195,7 @@ def gen_coords(max_coords):
         yield coord
 
 
-def adjust_coords_to_stop_ship_from_flying_away(next_row, next_column, max_coords, frame_size):
-    frame_rows, frame_columns = frame_size
+def adjust_coords_to_stop_ship_from_flying_away(next_row, next_column, max_coords, frame_rows, frame_columns):
     max_row, max_column = max_coords
     if next_row < 1:
         next_row = 1
@@ -236,8 +239,11 @@ def draw(canvas):
                 COROUTINES.remove(coroutine)
 
         current_spaceship_frame = next(spaceship_frame)
-        rows_direction, columns_direction = read_controls(canvas)
-        row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction /3, columns_direction / 3)
+        frame_rows, frame_columns = get_frame_size(current_spaceship_frame)
+        rows_direction, columns_direction, shoot = read_controls(canvas)
+        if shoot:
+            COROUTINES.append(fire(canvas, current_row - 1, current_column + 2))
+        row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction / 3, columns_direction / 3)
 
         current_row += row_speed
         current_column += column_speed
@@ -245,7 +251,8 @@ def draw(canvas):
                 current_row,
                 current_column,
                 window.getmaxyx(),
-                get_frame_size(current_spaceship_frame)
+                frame_rows,
+                frame_columns
         )
 
         draw_frame(canvas, current_row, current_column, current_spaceship_frame)
