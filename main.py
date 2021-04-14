@@ -2,6 +2,7 @@ import time
 import asyncio
 import curses
 import random
+from physics import update_speed
 from itertools import cycle
 from os import walk
 
@@ -190,11 +191,9 @@ def gen_coords(max_coords):
         yield coord
 
 
-def fetch_next_coords(current_row, current_column, delta_row, delta_column, max_coords, frame_size):
+def adjust_coords_to_stop_ship_from_flying_away(next_row, next_column, max_coords, frame_size):
     frame_rows, frame_columns = frame_size
     max_row, max_column = max_coords
-    next_row = current_row + delta_row
-    next_column = current_column + delta_column
     if next_row < 1:
         next_row = 1
     if next_row + frame_rows > max_row:
@@ -223,8 +222,12 @@ def draw(canvas):
     symbol = gen_symbol()
     current_row, current_column = 1, 1
     COROUTINES.extend([blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)])
-    #python main.py
     COROUTINES.append(fill_orbit_with_garbage(canvas))
+
+    row_speed = 0
+    column_speed = 0
+
+    # python3 main.py
     while True:
         for coroutine in COROUTINES.copy():
             try:
@@ -233,15 +236,18 @@ def draw(canvas):
                 COROUTINES.remove(coroutine)
 
         current_spaceship_frame = next(spaceship_frame)
-        delta_row, delta_column = read_controls(canvas)
-        current_row, current_column = fetch_next_coords(
+        rows_direction, columns_direction = read_controls(canvas)
+        row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction /3, columns_direction / 3)
+
+        current_row += row_speed
+        current_column += column_speed
+        current_row, current_column = adjust_coords_to_stop_ship_from_flying_away(
                 current_row,
                 current_column,
-                delta_row,
-                delta_column,
                 window.getmaxyx(),
                 get_frame_size(current_spaceship_frame)
         )
+
         draw_frame(canvas, current_row, current_column, current_spaceship_frame)
 
         canvas.border()
