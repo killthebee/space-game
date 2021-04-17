@@ -82,13 +82,13 @@ async def fly_garbage(canvas, column, frame, obstacle_id, speed=0.5):
     rows_size, column_size = get_frame_size(frame)
     while row < rows_number:
         draw_frame(canvas, row, column, frame)
-        OBSTACLES.append(Obstacle(row, column, rows_size, column_size, obstacle_id))
+        obstacle = Obstacle(row, column, rows_size, column_size, obstacle_id)
+        OBSTACLES.append(obstacle)
         await asyncio.sleep(0)
-        for obstacle in OBSTACLES:
-            if obstacle.uid == obstacle_id:
-                OBSTACLES.remove(obstacle)
-                break
+        OBSTACLES.remove(obstacle)
         draw_frame(canvas, row, column, frame, negative=True)
+        if obstacle.collision:
+            break
         row += speed
 
 
@@ -172,6 +172,7 @@ def read_controls(canvas):
 def check_collision(row, column):
     for obstacle in OBSTACLES:
         if obstacle.has_collision(round(row), round(column)):
+            obstacle.collision = True
             return True
     return False
 
