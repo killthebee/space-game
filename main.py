@@ -133,6 +133,8 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
+        if check_collision(row, column):
+            break
         row += rows_speed
         column += columns_speed
 
@@ -165,6 +167,13 @@ def read_controls(canvas):
             shoot = True
 
     return rows_direction, columns_direction, shoot
+
+
+def check_collision(row, column):
+    for obstacle in OBSTACLES:
+        if obstacle.has_collision(round(row), round(column)):
+            return True
+    return False
 
 
 def draw_frame(canvas, start_row, start_column, text, negative=False):
