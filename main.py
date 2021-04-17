@@ -2,6 +2,7 @@ import time
 import asyncio
 import curses
 import random
+from obstacles import Obstacle
 from physics import update_speed
 from itertools import cycle
 from os import walk
@@ -15,6 +16,7 @@ DOWN_KEY_CODE = 258
 TIC = 0.1
 SYMBOLS = "'+*.:'"
 COROUTINES = []
+OBSTACLES = []
 
 
 def fetch_spaceship_frames():
@@ -56,12 +58,36 @@ async def blink(canvas, coord, symbol='*'):
             await asyncio.sleep(0)
 
 
-async def fly_garbage(canvas, column, frame, speed=0.5):
+async def show_obstacles(canvas):
+    """Display bounding boxes of every obstacle in a list"""
+
+    while True:
+        boxes = []
+
+        for obstacle in OBSTACLES:
+            boxes.append(obstacle.dump_bounding_box())
+
+        for row, column, frame in boxes:
+            draw_frame(canvas, row, column, frame)
+
+        await asyncio.sleep(0)
+
+        for row, column, frame in boxes:
+            draw_frame(canvas, row, column, frame, negative=True)
+
+
+async def fly_garbage(canvas, column, frame, obstacle_id, speed=0.5):
     rows_number, columns_number = canvas.getmaxyx()
     row = 0
+    rows_size, column_size = get_frame_size(frame)
     while row < rows_number:
         draw_frame(canvas, row, column, frame)
+        OBSTACLES.append(Obstacle(row, column, rows_size, column_size, obstacle_id))
         await asyncio.sleep(0)
+        for obstacle in OBSTACLES:
+            if obstacle.uid == obstacle_id:
+                OBSTACLES.remove(obstacle)
+                break
         draw_frame(canvas, row, column, frame, negative=True)
         row += speed
 
@@ -73,7 +99,8 @@ async def fill_orbit_with_garbage(canvas):
     while True:
         column = random.randint(offset, columns_number - offset)
         frame_num = random.randint(0, 5)
-        COROUTINES.append(fly_garbage(canvas, column, space_trash_frames[frame_num]))
+        obstacle_id = gen_obstacle_uid()
+        COROUTINES.append(fly_garbage(canvas, column, space_trash_frames[frame_num], next(obstacle_id)))
         for _ in range(0, 30):
             await asyncio.sleep(0)
 
@@ -183,6 +210,13 @@ def gen_frame(frames):
         yield frames[i]
 
 
+def gen_obstacle_uid():
+    garbage_id = 0
+    while True:
+        garbage_id += 1
+        yield garbage_id
+
+
 def gen_coords(max_coords):
     max_row = max_coords[1]
     max_column = max_coords[0]
@@ -226,6 +260,7 @@ def draw(canvas):
     current_row, current_column = 1, 1
     COROUTINES.extend([blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)])
     COROUTINES.append(fill_orbit_with_garbage(canvas))
+    COROUTINES.append(show_obstacles(canvas))
 
     row_speed = 0
     column_speed = 0
@@ -242,6 +277,7 @@ def draw(canvas):
         frame_rows, frame_columns = get_frame_size(current_spaceship_frame)
         rows_direction, columns_direction, shoot = read_controls(canvas)
         if shoot:
+            # incremented coords to avoid ship and shot animations overlay
             COROUTINES.append(fire(canvas, current_row - 1, current_column + 2))
         row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction / 3, columns_direction / 3)
 
