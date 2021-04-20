@@ -5,6 +5,7 @@ import random
 from obstacles import Obstacle
 from physics import update_speed
 from itertools import cycle
+from explosion import EXPLOSION_FRAMES
 from os import walk
 
 
@@ -58,6 +59,21 @@ async def blink(canvas, coord, symbol='*'):
             await asyncio.sleep(0)
 
 
+async def explode(canvas, center_row, center_column):
+    rows, columns = get_frame_size(EXPLOSION_FRAMES[0])
+    corner_row = center_row - rows / 2
+    corner_column = center_column - columns / 2
+
+    curses.beep()
+    for frame in EXPLOSION_FRAMES:
+
+        draw_frame(canvas, corner_row, corner_column, frame)
+
+        await asyncio.sleep(0)
+        draw_frame(canvas, corner_row, corner_column, frame, negative=True)
+        await asyncio.sleep(0)
+
+
 async def show_obstacles(canvas):
     """Display bounding boxes of every obstacle in a list"""
 
@@ -79,15 +95,17 @@ async def show_obstacles(canvas):
 async def fly_garbage(canvas, column, frame, obstacle_id, speed=0.5):
     rows_number, columns_number = canvas.getmaxyx()
     row = 0
-    rows_size, column_size = get_frame_size(frame)
+    row_size, column_size = get_frame_size(frame)
     while row < rows_number:
         draw_frame(canvas, row, column, frame)
-        obstacle = Obstacle(row, column, rows_size, column_size, obstacle_id)
+        obstacle = Obstacle(row, column, row_size, column_size, obstacle_id)
         OBSTACLES.append(obstacle)
         await asyncio.sleep(0)
         OBSTACLES.remove(obstacle)
         draw_frame(canvas, row, column, frame, negative=True)
         if obstacle.collision:
+            # add half of the frame sizes to find coords of frame center
+            await explode(canvas, row + row_size / 2, column + column_size / 2)
             break
         row += speed
 
