@@ -1,6 +1,3 @@
-import asyncio
-
-
 class Obstacle:
 
     def __init__(self, row, column, rows_size=1, columns_size=1, uid=None, collision=False ):

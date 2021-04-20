@@ -40,6 +40,12 @@ def fetch_space_trash_frames():
     return frames
 
 
+def fetch_gameover_frame():
+    with open('frames/gameover.txt') as file:
+        frame = file.read()
+    return frame
+
+
 async def blink(canvas, coord, symbol='*'):
     row, column = coord
     for _ in range(0, random.randint(1, 20)):
@@ -187,11 +193,16 @@ def read_controls(canvas):
     return rows_direction, columns_direction, shoot
 
 
-def check_collision(row, column):
-    for obstacle in OBSTACLES:
-        if obstacle.has_collision(round(row), round(column)):
-            obstacle.collision = True
-            return True
+def check_collision(row, column, ship_sizes=None):
+    if ship_sizes:
+        for obstacle in OBSTACLES:
+            if obstacle.has_collision(round(row), round(column), ship_sizes[0], ship_sizes[1]):
+                return True
+    else:
+        for obstacle in OBSTACLES:
+                if obstacle.has_collision(round(row), round(column)):
+                    obstacle.collision = True
+                    return True
     return False
 
 
@@ -266,7 +277,7 @@ def adjust_coords_to_stop_ship_from_flying_away(next_row, next_column, max_coord
     if next_column < 1:
         next_column = 1
     if next_column + frame_columns > max_column:
-        next_column = max_column - frame_columns -1
+        next_column = max_column - frame_columns - 1
     return next_row, next_column
 
 
@@ -282,6 +293,11 @@ def draw(canvas):
     curses.curs_set(False)
     window = curses.initscr()
     window.nodelay(True)
+
+    gameover_frame = fetch_gameover_frame()
+    gameover_frame_row_size, gameover_frame_column_size = get_frame_size(gameover_frame)
+    rows_number, columns_number = canvas.getmaxyx()
+    is_gameover = False
 
     coord = gen_coords(window.getmaxyx())
     symbol = gen_symbol()
@@ -300,26 +316,32 @@ def draw(canvas):
                 coroutine.send(None)
             except StopIteration:
                 COROUTINES.remove(coroutine)
+        if is_gameover:
+            # dividing coords in order to center gameover frame
+            draw_frame(canvas, rows_number / 2 - gameover_frame_row_size / 2,
+                       columns_number / 2 - gameover_frame_column_size / 2, gameover_frame)
+        else:
+            current_spaceship_frame = next(spaceship_frame)
+            frame_rows, frame_columns = get_frame_size(current_spaceship_frame)
+            rows_direction, columns_direction, shoot = read_controls(canvas)
+            if shoot:
+                # incremented coords to avoid ship and shot animations overlay
+                COROUTINES.append(fire(canvas, current_row - 1, current_column + 2))
+            row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction / 3, columns_direction / 3)
 
-        current_spaceship_frame = next(spaceship_frame)
-        frame_rows, frame_columns = get_frame_size(current_spaceship_frame)
-        rows_direction, columns_direction, shoot = read_controls(canvas)
-        if shoot:
-            # incremented coords to avoid ship and shot animations overlay
-            COROUTINES.append(fire(canvas, current_row - 1, current_column + 2))
-        row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction / 3, columns_direction / 3)
+            current_row += row_speed
+            current_column += column_speed
+            current_row, current_column = adjust_coords_to_stop_ship_from_flying_away(
+                    current_row,
+                    current_column,
+                    window.getmaxyx(),
+                    frame_rows,
+                    frame_columns
+            )
+            if check_collision(current_row, current_column, (frame_rows, frame_columns)):
+                is_gameover = True
 
-        current_row += row_speed
-        current_column += column_speed
-        current_row, current_column = adjust_coords_to_stop_ship_from_flying_away(
-                current_row,
-                current_column,
-                window.getmaxyx(),
-                frame_rows,
-                frame_columns
-        )
-
-        draw_frame(canvas, current_row, current_column, current_spaceship_frame)
+            draw_frame(canvas, current_row, current_column, current_spaceship_frame)
 
         canvas.border()
         canvas.refresh()
