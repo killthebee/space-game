@@ -3,6 +3,7 @@ import asyncio
 import curses
 import random
 from obstacles import Obstacle
+from year_phrases import PHRASES
 from physics import update_speed
 from itertools import cycle
 from explosion import EXPLOSION_FRAMES
@@ -18,6 +19,7 @@ TIC = 0.1
 SYMBOLS = "'+*.:'"
 COROUTINES = []
 OBSTACLES = []
+YEAR = 1957
 
 
 def fetch_spaceship_frames():
@@ -121,11 +123,15 @@ async def fill_orbit_with_garbage(canvas):
     space_trash_frames = fetch_space_trash_frames()
     offset = 5
     while True:
-        column = random.randint(offset, columns_number - offset)
-        frame_num = random.randint(0, 5)
-        obstacle_id = gen_obstacle_uid()
-        COROUTINES.append(fly_garbage(canvas, column, space_trash_frames[frame_num], next(obstacle_id)))
-        for _ in range(0, 30):
+        delay = get_garbage_delay_tics(YEAR)
+        if delay:
+            column = random.randint(offset, columns_number - offset)
+            frame_num = random.randint(0, 5)
+            obstacle_id = gen_obstacle_uid()
+            COROUTINES.append(fly_garbage(canvas, column, space_trash_frames[frame_num], next(obstacle_id)))
+            for _ in range(0, delay):
+                await asyncio.sleep(0)
+        else:
             await asyncio.sleep(0)
 
 
@@ -163,6 +169,27 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
+async def show_year(canvas):
+    rows_number, columns_number = canvas.getmaxyx()
+    offset = 2
+    while True:
+        try:
+            text = f'{YEAR}: {PHRASES[YEAR]}'
+        except KeyError:
+            text = str(YEAR)
+        draw_frame(canvas, offset, columns_number - len(text) - offset, text)
+        await asyncio.sleep(0)
+        draw_frame(canvas, offset, columns_number - len(text) - offset, text, negative=True)
+
+
+async def increment_year():
+    while True:
+        for _ in range(0, 9):
+            await asyncio.sleep(0)
+        global YEAR
+        YEAR += 1
+
+
 def read_controls(canvas):
     """Read keys pressed and returns tuple witl controls state."""
 
@@ -187,7 +214,7 @@ def read_controls(canvas):
         if pressed_key_code == LEFT_KEY_CODE:
             columns_direction = -3
 
-        if pressed_key_code == SPACE_KEY_CODE:
+        if pressed_key_code == SPACE_KEY_CODE and YEAR >= 2020:
             shoot = True
 
     return rows_direction, columns_direction, shoot
@@ -243,6 +270,22 @@ def get_frame_size(text):
     columns = max([len(line) for line in lines])
     return rows, columns
 
+
+def get_garbage_delay_tics(year):
+    if year < 1961:
+        return None
+    elif year < 1969:
+        return 20
+    elif year < 1981:
+        return 14
+    elif year < 1995:
+        return 10
+    elif year < 2010:
+        return 8
+    elif year < 2020:
+        return 6
+    else:
+        return 2
 
 def gen_frame(frames):
     for i in cycle([0, 0, 1, 1]):
@@ -304,12 +347,12 @@ def draw(canvas):
     current_row, current_column = 1, 1
     COROUTINES.extend([blink(canvas, next(coord), next(symbol)) for _ in range(1, 450)])
     COROUTINES.append(fill_orbit_with_garbage(canvas))
-    COROUTINES.append(show_obstacles(canvas))
+    COROUTINES.append(show_year(canvas))
+    COROUTINES.append(increment_year())
 
     row_speed = 0
     column_speed = 0
 
-    # python3 main.py
     while True:
         for coroutine in COROUTINES.copy():
             try:
