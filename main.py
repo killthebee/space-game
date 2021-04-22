@@ -22,6 +22,11 @@ OBSTACLES = []
 YEAR = 1957
 
 
+async def sleep(tics=1):
+    for _ in range(0, tics):
+        await asyncio.sleep(0)
+
+
 def fetch_spaceship_frames():
     with open('frames/rocket_frame_1.txt') as file1:
         frame1 = file1.read()
@@ -50,8 +55,7 @@ def fetch_gameover_frame():
 
 async def blink(canvas, coord, symbol='*'):
     row, column = coord
-    for _ in range(0, random.randint(1, 20)):
-        await asyncio.sleep(0)
+    await sleep(random.randint(1, 20))
     while True:
         for _ in range(0, 20):
             canvas.addstr(row, column, symbol, curses.A_DIM)
@@ -129,8 +133,7 @@ async def fill_orbit_with_garbage(canvas):
             frame_num = random.randint(0, 5)
             obstacle_id = gen_obstacle_uid()
             COROUTINES.append(fly_garbage(canvas, column, space_trash_frames[frame_num], next(obstacle_id)))
-            for _ in range(0, delay):
-                await asyncio.sleep(0)
+            await sleep(delay)
         else:
             await asyncio.sleep(0)
 
@@ -183,9 +186,9 @@ async def show_year(canvas):
 
 
 async def increment_year():
+    tics_in_one_year = 9
     while True:
-        for _ in range(0, 9):
-            await asyncio.sleep(0)
+        await sleep(tics_in_one_year)
         global YEAR
         YEAR += 1
 
