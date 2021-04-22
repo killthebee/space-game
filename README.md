@@ -1,7 +1,9 @@
 # Space game
-Этот срипт выводит в консоль игру, с корабликом и звездочками, как на гифке.
+Этот срипт выводит в консоль игру: Лети по орбите земли уворачиваясь от космического мусор. Но довольно скоро его становиться так 
+много([Подробнее об этом](https://www.youtube.com/watch?v=i8U8rmeCnXw))
+, что тебе придётся расчищать себе путь лазерным бластером.
 <p align="center">
-  <img src="https://github.com/killthebee/space-game/blob/master/gif/demo.gif"/>
+  <img src="https://github.com/killthebee/space-game/blob/master/gif/demo2.gif"/>
 </p>
 
 ## Запуск
